@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>STREET RACE • F1 Edition</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: radial-gradient(circle at top left, rgba(220,38,38,0.22), transparent 45%),
+                radial-gradient(circle at top right, rgba(37,99,235,0.25), transparent 48%),
+                #06080e;
+    color: #f8fafc; font-family: system-ui, -apple-system, sans-serif;
+    display: flex; flex-direction: column;
+  }
+  .top-hud {
+    height: 44px; padding: 0 10px;
+    background: linear-gradient(90deg, rgba(127,29,29,0.38), #0e1422, rgba(30,58,138,0.38));
+    border-bottom: 1px solid rgba(96, 165, 250, 0.32);
+    display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 900; gap: 6px;
+  }
+  .lobby-back {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff;
+    border: none; border-radius: 7px; padding: 5px 8px; font-size: 10px; font-weight: 900;
+    cursor: pointer; box-shadow: 0 2px 0 #172554; white-space: nowrap;
+  }
+  .car-label { color: #93c5fd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zone-box { color: #fca5a5; white-space: nowrap; }
+  .score-box { color: #60a5fa; white-space: nowrap; }
+
+  .ad-board {
+    margin: 6px 12px 0; padding: 6px 10px; border-radius: 11px;
+    background: linear-gradient(90deg, rgba(127,29,29,0.25), #101727, rgba(30,58,138,0.28));
+    border: 1.2px dashed #ef4444;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    box-shadow: 0 4px 0 #04060b;
+  }
+  .ad-tag {
+    font-size: 9px; font-weight: 900; background: linear-gradient(90deg, #dc2626, #2563eb); color: #fff;
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .ad-text { font-size: 11px; color: #e2e8f0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ad-btn {
+    background: linear-gradient(90deg, #2563eb, #38bdf8); color: #fff; border: none; border-radius: 6px;
+    padding: 4px 8px; font-size: 10px; font-weight: 900; cursor: pointer;
+  }
+
+  .game-wrap {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 12px; position: relative;
+  }
+  canvas {
+    width: 100%; max-width: 380px; height: 100%; max-height: 440px;
+    border-radius: 15px; border: 1.5px solid rgba(96, 165, 250, 0.38); background: #121826;
+    box-shadow: 0 7px 0 #04060c, 0 16px 32px rgba(0,0,0,0.82);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  .controls {
+    width: 100%; max-width: 380px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-top: 8px;
+  }
+  .ctrl-btn {
+    padding: 12px; border-radius: 13px;
+    border: 1px solid rgba(96, 165, 250, 0.35);
+    background: linear-gradient(145deg, #172036, #0d1322);
+    color: #fff; font-size: 14px; font-weight: 900; cursor: pointer;
+    box-shadow: 0 4px 0 #05070e;
+  }
+  .ctrl-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #05070e; }
+</style>
+</head>
+<body>
+
+<div class="top-hud">
+  <button class="lobby-back" onclick="goLobby()">⬅ LOBBY</button>
+  <div class="car-label" id="hud-car">STREET RACE • F1</div>
+  <div class="zone-box" id="hud-zone">CITY NIGHT • T1</div>
+  <div class="score-box" id="hud-score">SCORE: 0</div>
+</div>
+
+<div class="ad-board">
+  <span class="ad-tag">AD BOARD</span>
+  <span class="ad-text" id="ad-banner-msg">STREET RACE • F1 Formula & Dynamic Zones</span>
+  <button class="ad-btn" onclick="cycleAdSlot()">Next Ad</button>
+</div>
+
+<div class="game-wrap">
+  <canvas id="road" width="320" height="400"></canvas>
+  <div class="controls">
+    <button class="ctrl-btn" onclick="moveLane(-1)">⬅️ LEFT</button>
+    <button class="ctrl-btn" onclick="moveLane(1)">RIGHT ➡️</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('road');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const LANES = [64, 160, 256];
+const ADS = [
+  "STREET RACE • F1 Formula & Dynamic Zones",
+  "Universe 3D Pool • Fair Ad & Sponsor revenue share",
+  "Smooth 3GB RAM Pixel Engine • 2-Side Street Lamps & Zones"
+];
+
+const F1_CAR = {
+  name: 'STREET RACE • F1',
+  type: 'f1',
+  px: 2.25,
+  cols: 17,
+  rows: 32,
+  main: '#f97316',
+  hi: '#fdba74',
+  sh: '#c2410c',
+  acc: '#0f172a'
+};
+
+const TRAFFIC_VEHICLES = [
+  { name: 'VENOM YELLOW',   type: 'super_y',  px: 2.35, cols: 17, rows: 31, main: '#facc15', hi: '#fef08a', sh: '#ca8a04', acc: '#1e293b' },
+  { name: 'CRIMSON GT',     type: 'super_r',  px: 2.35, cols: 17, rows: 31, main: '#ef4444', hi: '#fca5a5', sh: '#b91c1c', acc: '#1e293b' },
+  { name: 'COBALT COUPE',   type: 'super_b',  px: 2.30, cols: 16, rows: 30, main: '#2563eb', hi: '#93c5fd', sh: '#1d4ed8', acc: '#f8fafc' },
+  { name: 'HEAVY TRUCK',    type: 'truck',    px: 2.30, cols: 17, rows: 36, main: '#f97316', hi: '#ffedd5', sh: '#c2410c', acc: '#38bdf8' },
+  { name: 'CITY VAN',       type: 'van',      px: 2.30, cols: 17, rows: 33, main: '#e2e8f0', hi: '#ffffff', sh: '#64748b', acc: '#ef4444' },
+  { name: 'CARGO RIG',      type: 'cargo',    px: 2.30, cols: 18, rows: 38, main: '#eab308', hi: '#fef9c3', sh: '#a16207', acc: '#dc2626' },
+  { name: 'MONSTER TRUCK',  type: 'monster',  px: 2.35, cols: 18, rows: 31, main: '#dc2626', hi: '#fca5a5', sh: '#991b1b', acc: '#4ade80' },
+  { name: 'RALLY SEDAN',    type: 'rally',    px: 2.25, cols: 16, rows: 30, main: '#38bdf8', hi: '#e0f2fe', sh: '#0284c7', acc: '#ef4444' },
+  { name: 'NIGHT ROADSTER', type: 'roadster', px: 2.25, cols: 16, rows: 29, main: '#ec4899', hi: '#fbcfe8', sh: '#be185d', acc: '#38bdf8' }
+];
+
+const ZONES = [
+  {
+    name: 'CITY NIGHT',
+    roadLeft: '#101522', roadMid: '#1a2236', roadRight: '#101522',
+    shoulder: '#090c14', curbA: '#dc2626', curbB: '#2563eb',
+    line: 'rgba(147, 197, 253, 0.58)', glow: '#60a5fa',
+    lampCore: '#93c5fd', lampHalo: 'rgba(59, 130, 246, 0.16)', pole: '#64748b'
+  },
+  {
+    name: 'CRIMSON SECTOR',
+    roadLeft: '#220d14', roadMid: '#361320', roadRight: '#220d14',
+    shoulder: '#14060b', curbA: '#ef4444', curbB: '#fca5a5',
+    line: 'rgba(254, 202, 202, 0.62)', glow: '#f87171',
+    lampCore: '#fca5a5', lampHalo: 'rgba(239, 68, 68, 0.18)', pole: '#7f1d1d'
+  },
+  {
+    name: 'COBALT GRID',
+    roadLeft: '#0b1526', roadMid: '#12223d', roadRight: '#0b1526',
+    shoulder: '#060c17', curbA: '#3b82f6', curbB: '#93c5fd',
+    line: 'rgba(147, 197, 253, 0.62)', glow: '#38bdf8',
+    lampCore: '#bfdbfe', lampHalo: 'rgba(37, 99, 235, 0.18)', pole: '#1e3a8a'
+  },
+  {
+    name: 'BLOOD & BLUE',
+    roadLeft: '#1a0e24', roadMid: '#291538', roadRight: '#1a0e24',
+    shoulder: '#0d0714', curbA: '#ef4444', curbB: '#3b82f6',
+    line: 'rgba(226, 232, 240, 0.6)', glow: '#f87171',
+    lampCore: '#fef08a', lampHalo: 'rgba(239, 68, 68, 0.15)', pole: '#475569'
+  }
+];
+
+let adIndex = 0;
+let lane = 1;
+let playerX = LANES[1];
+let prevPlayerX = LANES[1];
+let tiltAngle = 0;
+const playerY = 318;
+
+let obstacles = [];
+let stripesY = 0;
+let lampOffset = 0;
+let score = 0;
+let baseSpeed = 4.0;
+let speed = 4.0;
+let gameOver = false;
+let spawnTimer = 0;
+let currentZoneIdx = 0;
+let zoneBannerTimer = 0;
+
+function goLobby() {
+  window.location.href = 'lobby.html';
+}
+
+function getZoneForScore(sc) {
+  return Math.floor(sc / 150) % ZONES.length;
+}
+
+function getDifficultyTier(sc) {
+  return 1 + Math.floor(sc / 120);
+}
+
+function syncHud() {
+  const z = ZONES[currentZoneIdx];
+  const tier = getDifficultyTier(score);
+  document.getElementById('hud-car').textContent = `STREET RACE • F1`;
+  document.getElementById('hud-zone').textContent = `${z.name} • T${tier}`;
+  document.getElementById('hud-score').textContent = `SCORE: ${score}`;
+}
+
+function cycleAdSlot() {
+  adIndex = (adIndex + 1) % ADS.length;
+  document.getElementById('ad-banner-msg').textContent = ADS[adIndex];
+}
+
+function moveLane(dir) {
+  if (gameOver) {
+    restartGame();
+    return;
+  }
+  lane = Math.max(0, Math.min(2, lane + dir));
+}
+
+function restartGame() {
+  lane = 1;
+  playerX = LANES[1];
+  prevPlayerX = LANES[1];
+  tiltAngle = 0;
+  obstacles = [];
+  score = 0;
+  baseSpeed = 4.0;
+  speed = 4.0;
+  currentZoneIdx = 0;
+  zoneBannerTimer = 0;
+  gameOver = false;
+  spawnTimer = 0;
+  syncHud();
+  cycleAdSlot();
+}
+
+function spawnObstacle() {
+  const openLane = Math.floor(Math.random() * 3);
+  const model = TRAFFIC_VEHICLES[Math.floor(Math.random() * TRAFFIC_VEHICLES.length)];
+  const tier = getDifficultyTier(score);
+  const extraVel = Math.min(3.5, (tier - 1) * 0.45);
+  obstacles.push({
+    lane: openLane,
+    x: LANES[openLane],
+    y: -65,
+    model,
+    extraVel
+  });
+}
+
+function update() {
+  if (gameOver) return;
+
+  const tier = getDifficultyTier(score);
+  baseSpeed = Math.min(9.8, 4.0 + score * 0.0045);
+  speed = baseSpeed;
+
+  stripesY = (stripesY + speed * 2.2) % 44;
+  lampOffset = (lampOffset + speed * 2.2) % 130;
+
+  prevPlayerX = playerX;
+  playerX += (LANES[lane] - playerX) * 0.22;
+
+  const vx = playerX - prevPlayerX;
+  const targetTilt = Math.max(-0.10, Math.min(0.10, vx * 0.014));
+  tiltAngle += (targetTilt - tiltAngle) * 0.25;
+
+  const nextZone = getZoneForScore(score);
+  if (nextZone !== currentZoneIdx) {
+    currentZoneIdx = nextZone;
+    zoneBannerTimer = 85;
+    syncHud();
+  }
+  if (zoneBannerTimer > 0) zoneBannerTimer--;
+
+  spawnTimer++;
+  const spawnInterval = Math.max(20, 52 - (tier - 1) * 5);
+  if (spawnTimer > spawnInterval) {
+    spawnObstacle();
+    spawnTimer = 0;
+  }
+
+  const pw = F1_CAR.cols * F1_CAR.px;
+  const ph = F1_CAR.rows * F1_CAR.px;
+
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const ob = obstacles[i];
+    ob.y += speed + ob.extraVel * 0.4;
+
+    const ow = ob.model.cols * ob.model.px;
+    const oh = ob.model.rows * ob.model.px;
+
+    if (Math.abs(ob.x - playerX) < (pw + ow) * 0.37 && Math.abs(ob.y - playerY) < (ph + oh) * 0.33) {
+      gameOver = true;
+    }
+
+    if (ob.y > canvas.height + 75) {
+      obstacles.splice(i, 1);
+      score += 10;
+      syncHud();
+    }
+  }
+}
+
+function pxRect(gx, gy, gw, gh, color, s, ox, oy) {
+  ctx.fillStyle = color;
+  ctx.fillRect(
+    Math.round(ox + gx * s),
+    Math.round(oy + gy * s),
+    Math.max(1, Math.round(gw * s)),
+    Math.max(1, Math.round(gh * s))
+  );
+}
+
+function drawF1ReferenceCar(cx, cy, tilt) {
+  const s = F1_CAR.px;
+  const totalW = F1_CAR.cols * s;
+  const totalH = F1_CAR.rows * s;
+  const ox = -totalW / 2;
+  const oy = -totalH / 2;
+  const out = '#090b10';
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(tilt);
+
+  pxRect(1, 0, 15, 3, out, s, ox, oy);
+  pxRect(6, 3, 5, 6, out, s, ox, oy);
+  pxRect(3, 9, 11, 16, out, s, ox, oy);
+  pxRect(1, 25, 15, 7, out, s, ox, oy);
+
+  pxRect(2, 1, 13, 2, F1_CAR.main, s, ox, oy);
+  pxRect(3, 1, 11, 1, F1_CAR.hi, s, ox, oy);
+
+  pxRect(7, 3, 3, 7, F1_CAR.main, s, ox, oy);
+  pxRect(7, 3, 1, 7, F1_CAR.hi, s, ox, oy);
+
+  const wheels = [
+    [0, 4], [14, 4],
+    [0, 22], [14, 22]
+  ];
+  wheels.forEach(([wx, wy]) => {
+    pxRect(wx, wy, 3, 7, '#090c12', s, ox, oy);
+    pxRect(wx + 1, wy + 1, 1, 5, '#475569', s, ox, oy);
+  });
+
+  pxRect(4, 10, 9, 14, F1_CAR.main, s, ox, oy);
+  pxRect(4, 10, 2, 14, F1_CAR.hi, s, ox, oy);
+  pxRect(11, 10, 2, 14, F1_CAR.sh, s, ox, oy);
+
+  pxRect(6, 12, 5, 7, '#0f172a', s, ox, oy);
+  pxRect(7, 13, 3, 3, '#fde047', s, ox, oy);
+  pxRect(7, 11, 3, 1, F1_CAR.hi, s, ox, oy);
+
+  pxRect(7, 19, 3, 6, F1_CAR.sh, s, ox, oy);
+  pxRect(2, 26, 13, 4, F1_CAR.main, s, ox, oy);
+  pxRect(3, 27, 11, 2, F1_CAR.hi, s, ox, oy);
+  pxRect(7, 30, 3, 1, '#ff2a55', s, ox, oy);
+
+  ctx.restore();
+}
+
+function drawStyledPixelCar(cx, cy, m, tilt) {
+  const s = m.px;
+  const totalW = m.cols * s;
+  const totalH = m.rows * s;
+  const ox = -totalW / 2;
+  const oy = -totalH / 2;
+  const out = '#090b10';
+  const isHeavy = m.type === 'truck' || m.type === 'cargo';
+  const isMonster = m.type === 'monster';
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(tilt);
+
+  pxRect(2, 0, m.cols - 4, 2, out, s, ox, oy);
+  pxRect(1, 2, m.cols - 2, m.rows - 4, out, s, ox, oy);
+  pxRect(2, m.rows - 2, m.cols - 4, 2, out, s, ox, oy);
+
+  const ww = isMonster ? 3 : 2;
+  const wh = isMonster ? 7 : 5;
+  [0, m.cols - ww].forEach(wc => {
+    [4, m.rows - wh - 4].forEach(wr => {
+      pxRect(wc, wr, ww, wh, '#090c12', s, ox, oy);
+      pxRect(wc + (wc === 0 ? 0 : ww - 1), wr + 1, 1, wh - 2, '#64748b', s, ox, oy);
+    });
+  });
+
+  const bx = 2;
+  const bw = m.cols - 4;
+  const mid = Math.floor(m.cols / 2);
+
+  if (isHeavy) {
+    const cabH = 8;
+    const gap = 2;
+    const boxY = 2 + cabH + gap;
+    const boxH = m.rows - 4 - cabH - gap;
+
+    pxRect(bx + 1, 1, bw - 2, cabH, m.main, s, ox, oy);
+    pxRect(bx + 1, 1, 2, cabH, m.hi, s, ox, oy);
+    pxRect(bx + bw - 3, 1, 2, cabH, m.sh, s, ox, oy);
+    pxRect(bx + 2, 3, bw - 4, 3, '#1e293b', s, ox, oy);
+
+    pxRect(bx, boxY, bw, boxH, m.main, s, ox, oy);
+    pxRect(bx, boxY, 2, boxH, m.hi, s, ox, oy);
+    pxRect(bx + bw - 2, boxY, 2, boxH, m.sh, s, ox, oy);
+    for (let ry = boxY + 4; ry < boxY + boxH - 2; ry += 4) {
+      pxRect(bx + 2, ry, bw - 4, 1, out, s, ox, oy);
+    }
+  } else {
+    pxRect(bx + 2, 1, bw - 4, 2, m.main, s, ox, oy);
+    pxRect(bx + 1, 3, bw - 2, m.rows - 6, m.main, s, ox, oy);
+    pxRect(bx, 6, bw, m.rows - 12, m.main, s, ox, oy);
+
+    pxRect(bx + 1, 4, 2, m.rows - 8, m.hi, s, ox, oy);
+    pxRect(bx + bw - 3, 4, 2, m.rows - 8, m.sh, s, ox, oy);
+
+    pxRect(bx + 2, 2, 2, 2, '#fef08a', s, ox, oy);
+    pxRect(bx + bw - 4, 2, 2, 2, '#fef08a', s, ox, oy);
+
+    pxRect(bx + 2, 8, bw - 4, 4, '#1e293b', s, ox, oy);
+    pxRect(bx + 3, 9, bw - 6, 2, '#475569', s, ox, oy);
+
+    pxRect(bx + 2, 12, bw - 4, 7, m.hi, s, ox, oy);
+    pxRect(bx + 3, 13, bw - 6, 5, m.main, s, ox, oy);
+
+    pxRect(bx + 2, 19, bw - 4, 3, '#1e293b', s, ox, oy);
+    pxRect(mid - 2, 22, 4, m.rows - 25, '#1e293b', s, ox, oy);
+    pxRect(mid - 1, 23, 2, m.rows - 27, '#475569', s, ox, oy);
+
+    pxRect(bx + 2, m.rows - 3, 3, 2, '#ff2a55', s, ox, oy);
+    pxRect(bx + bw - 5, m.rows - 3, 3, 2, '#ff2a55', s, ox, oy);
+  }
+
+  ctx.restore();
+}
+
+function drawStreetLamps(z) {
+  for (let ly = -130 + lampOffset; ly < canvas.height + 130; ly += 130) {
+    ctx.fillStyle = z.lampHalo;
+    ctx.beginPath();
+    ctx.arc(28, ly, 46, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = z.pole;
+    ctx.fillRect(6, ly - 10, 3, 20);
+    ctx.fillRect(6, ly - 11, 9, 2.5);
+    ctx.fillStyle = z.lampCore;
+    ctx.fillRect(12, ly - 9, 4, 3);
+
+    ctx.fillStyle = z.lampHalo;
+    ctx.beginPath();
+    ctx.arc(canvas.width - 28, ly, 46, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = z.pole;
+    ctx.fillRect(canvas.width - 9, ly - 10, 3, 20);
+    ctx.fillRect(canvas.width - 15, ly - 11, 9, 2.5);
+    ctx.fillStyle = z.lampCore;
+    ctx.fillRect(canvas.width - 16, ly - 9, 4, 3);
+  }
+}
+
+function draw() {
+  const z = ZONES[currentZoneIdx];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const roadGrad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  roadGrad.addColorStop(0, z.roadLeft);
+  roadGrad.addColorStop(0.5, z.roadMid);
+  roadGrad.addColorStop(1, z.roadRight);
+  ctx.fillStyle = roadGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = z.shoulder;
+  ctx.fillRect(0, 0, 22, canvas.height);
+  ctx.fillRect(canvas.width - 22, 0, 22, canvas.height);
+
+  for (let y = -44 + stripesY; y < canvas.height; y += 44) {
+    ctx.fillStyle = z.curbA;
+    ctx.fillRect(17, y, 5, 22);
+    ctx.fillRect(canvas.width - 22, y, 5, 22);
+    ctx.fillStyle = z.curbB;
+    ctx.fillRect(17, y + 22, 5, 22);
+    ctx.fillRect(canvas.width - 22, y + 22, 5, 22);
+  }
+
+  ctx.strokeStyle = z.line;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([20, 24]);
+  ctx.lineDashOffset = -stripesY;
+  [112, 208].forEach(lx => {
+    ctx.beginPath();
+    ctx.moveTo(lx, 0);
+    ctx.lineTo(lx, canvas.height);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  obstacles.forEach(ob => drawStyledPixelCar(ob.x, ob.y, ob.model, 0));
+  drawF1ReferenceCar(playerX, playerY, tiltAngle);
+  drawStreetLamps(z);
+
+  if (zoneBannerTimer > 0 && !gameOver) {
+    ctx.fillStyle = 'rgba(7, 10, 18, 0.88)';
+    ctx.fillRect(36, 26, canvas.width - 72, 34);
+    ctx.strokeStyle = z.glow;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(36, 26, canvas.width - 72, 34);
+    ctx.fillStyle = z.glow;
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(`ZONE: ${z.name} • SPEED UP!`, canvas.width / 2, 47);
+  }
+
+  if (gameOver) {
+    ctx.fillStyle = 'rgba(7, 10, 15, 0.78)';
+    ctx.fillRect(0, 58, canvas.width, 132);
+    ctx.fillStyle = '#f87171';
+    ctx.font = 'bold 21px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('CRASHED!', canvas.width / 2, 96);
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 14px system-ui';
+    ctx.fillText(`Final Score: ${score} (${z.name})`, canvas.width / 2, 126);
+    ctx.fillStyle = '#60a5fa';
+    ctx.font = 'bold 12px system-ui';
+    ctx.fillText('Tap LEFT / RIGHT to Race Again', canvas.width / 2, 156);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+syncHud();
+loop();
+</script>
+</body>
+</html>
