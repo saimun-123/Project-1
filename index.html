@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Shadow Squad RPG</title>
+<style>
+  :root {
+    --bg-0: #090b0f;
+    --bg-1: #11151d;
+    --bg-2: #1a202c;
+    --border: #2c3547;
+    --gold: #f5b942;
+    --cyan: #38bdf8;
+    --purple: #a855f7;
+    --red: #ef4444;
+    --green: #22c55e;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: radial-gradient(circle at 50% 18%, #212836 0%, #090b0f 86%);
+    color: var(--text); font-family: system-ui, -apple-system, sans-serif;
+  }
+  .topbar {
+    height: 44px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; background: rgba(9,11,15,0.95); border-bottom: 1px solid var(--border);
+  }
+  .title { font-weight: 900; font-size: 13px; letter-spacing: 0.7px; color: var(--gold); }
+  .pills { display: flex; gap: 6px; font-size: 11px; font-weight: 700; align-items: center; }
+  .pill { background: var(--bg-2); border: 1px solid var(--border); padding: 4px 9px; border-radius: 999px; }
+  .fs-btn {
+    background: var(--bg-2); border: 1px solid var(--cyan); color: var(--cyan);
+    padding: 4px 9px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;
+  }
+
+  .tabs { height: 36px; display: flex; background: var(--bg-1); border-bottom: 1px solid var(--border); }
+  .tab {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: 0.2s;
+  }
+  .tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(245,185,66,0.08); }
+
+  .view { display: none; height: calc(100% - 80px); padding: 10px 14px; }
+  .view.active { display: flex; flex-direction: column; justify-content: space-between; }
+
+  .squad-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; flex: 1; max-height: 245px; }
+  .hero-card {
+    position: relative; border-radius: 14px; overflow: hidden; cursor: pointer;
+    background: radial-gradient(circle at 50% 30%, #2b3446 0%, #0f131a 82%);
+    border: 1.5px solid var(--border);
+    box-shadow: 0 14px 26px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.09);
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: 8px; transition: transform 0.15s, border-color 0.2s;
+  }
+  .hero-card.selected { border-color: var(--gold); box-shadow: 0 0 18px rgba(245,185,66,0.24), 0 14px 26px rgba(0,0,0,0.78); }
+  .hero-card:active { transform: scale(0.97); }
+  .badge {
+    align-self: flex-end; font-size: 10px; font-weight: 800; padding: 2px 7px;
+    border-radius: 6px; background: rgba(0,0,0,0.65); border: 1px solid var(--border); color: var(--muted);
+  }
+  .hero-card.selected .badge { color: var(--gold); border-color: var(--gold); }
+
+  .emblem {
+    width: 78px; height: 78px; border-radius: 20px; display: grid; place-items: center;
+    font-size: 34px; font-weight: 900; position: relative;
+    background: linear-gradient(145deg, #252d3d, #11151d);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    box-shadow: 0 10px 18px rgba(0,0,0,0.7);
+    animation: idleBob 2.4s ease-in-out infinite;
+  }
+  @keyframes idleBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+
+  .hero-info { text-align: center; width: 100%; }
+  .hero-name { font-size: 14px; font-weight: 800; color: #fff; }
+  .hero-stats { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .bottom-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; }
+  .mode-box { display: flex; gap: 6px; }
+  .mode-btn {
+    background: var(--bg-2); border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .mode-btn.active { color: #fff; border-color: var(--cyan); background: rgba(56,189,248,0.14); }
+  .fight-btn {
+    background: linear-gradient(135deg, #f59e0b, #ea580c); color: #fff; border: none;
+    padding: 11px 28px; border-radius: 12px; font-size: 15px; font-weight: 900;
+    letter-spacing: 1px; box-shadow: 0 6px 20px rgba(234,88,12,0.45); cursor: pointer;
+  }
+  .fight-btn:active { transform: scale(0.96); }
+
+  .up-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+  .up-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px;
+  }
+  .up-btn {
+    background: var(--bg-2); border: 1px solid var(--gold); color: var(--gold);
+    padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer;
+  }
+
+  #battle-view {
+    display: none; position: fixed; inset: 0; z-index: 50;
+    background: radial-gradient(circle at 50% 42%, #232b3b 0%, #07090d 86%);
+    flex-direction: column; justify-content: space-between; padding: 10px 14px;
+  }
+  #battle-view.active { display: flex; }
+  .arena-stage {
+    flex: 1; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; position: relative;
+  }
+  .squad-formation { display: flex; flex-direction: column; gap: 10px; }
+  .unit-row { display: flex; align-items: center; gap: 8px; transition: transform 0.16s; }
+  .unit-badge {
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    font-size: 18px; font-weight: 900; background: var(--bg-2); border: 1.5px solid var(--gold);
+  }
+  .boss-formation { display: flex; flex-direction: column; align-items: center; position: relative; transition: transform 0.16s; }
+  .boss-badge {
+    width: 92px; height: 92px; border-radius: 24px; display: grid; place-items: center;
+    font-size: 38px; background: linear-gradient(145deg, #3b1219, #15090c);
+    border: 2px solid var(--red); box-shadow: 0 0 24px rgba(239,68,68,0.25);
+  }
+  .hp-bar { width: 136px; height: 10px; background: #1c212b; border-radius: 99px; overflow: hidden; border: 1px solid #3c4554; margin-bottom: 5px; }
+  .hp-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); width: 100%; transition: width 0.25s; }
+  .hp-fill.enemy { background: linear-gradient(90deg, #dc2626, #f87171); }
+  .battle-log {
+    text-align: center; font-size: 13px; font-weight: 700; color: var(--gold);
+    background: rgba(0,0,0,0.55); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+  }
+  .skills-row { display: flex; justify-content: center; gap: 10px; align-items: center; }
+  .skill-btn {
+    background: var(--bg-2); border: 1px solid var(--border); color: #fff;
+    padding: 10px 16px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer;
+  }
+  .skill-btn.ult { border-color: var(--gold); color: var(--gold); }
+  .skill-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .dmg-pop {
+    position: absolute; font-size: 18px; font-weight: 900; pointer-events: none;
+    animation: popUp 0.75s ease-out forwards; text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+  }
+  @keyframes popUp {
+    0% { opacity: 1; transform: translateY(0) scale(0.9); }
+    100% { opacity: 0; transform: translateY(-36px) scale(1.15); }
+  }
+  .dash-right { transform: translateX(26px); }
+  .dash-left { transform: translateX(-26px); }
+  .shake { animation: shake 0.25s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title">SHADOW SQUAD RPG</div>
+  <div class="pills">
+    <button class="fs-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    <div class="pill" id="stage-pill">Stage: 1</div>
+    <div class="pill" id="xp-pill" style="color:var(--gold)">XP: 120</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('lobby', this)">Lobby & Squad</div>
+  <div class="tab" onclick="switchTab('upgrade', this)">Level Up</div>
+</div>
+
+<div class="view active" id="view-lobby">
+  <div style="font-size:12px;color:var(--muted);font-weight:700;">TAP HEROES TO DEPLOY IN SQUAD (MIN 1, MAX 3)</div>
+  <div class="squad-row" id="squad-grid"></div>
+  <div class="bottom-bar">
+    <div class="mode-box">
+      <button class="mode-btn active" onclick="setMode('Story Mode', this)">Story</button>
+      <button class="mode-btn" onclick="setMode('Arena Duel', this)">Arena</button>
+      <button class="mode-btn" onclick="setMode('Boss Rush', this)">Boss</button>
+    </div>
+    <button class="fight-btn" onclick="startBattle()">FIGHT</button>
+  </div>
+</div>
+
+<div class="view" id="view-upgrade">
+  <div class="up-list" id="upgrade-list"></div>
+  <div style="display:flex;justify-content:flex-end;padding-top:8px;">
+    <button class="mode-btn" onclick="resetSave()">Reset Save</button>
+  </div>
+</div>
+
+<div id="battle-view">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <span id="battle-mode-label" style="font-size:12px;font-weight:800;color:var(--cyan);">STORY MODE</span>
+    <span id="ult-charge-label" style="font-size:12px;font-weight:800;color:var(--gold);">ULT CHARGE: 0/2</span>
+    <button class="mode-btn" onclick="exitBattle()">Retreat</button>
+  </div>
+  <div class="arena-stage" id="arena-stage">
+    <div class="squad-formation" id="player-squad-box"></div>
+    <div style="font-size:16px;font-weight:900;color:var(--muted);">VS</div>
+    <div class="boss-formation" id="enemy-box">
+      <div class="hp-bar"><div class="hp-fill enemy" id="e-hp-fill"></div></div>
+      <div id="e-hp-text" style="font-size:11px;font-weight:700;margin-bottom:6px;"></div>
+      <div class="boss-badge" id="e-icon">👹</div>
+      <div id="e-name" style="font-size:13px;font-weight:800;margin-top:6px;"></div>
+    </div>
+  </div>
+  <div class="battle-log" id="battle-log">তোর পালা! Strike বা Guard দিয়ে Ult Charge বাড়িয়ে Ultimate মার।</div>
+  <div class="skills-row">
+    <button class="skill-btn" id="btn-strike" onclick="playerAttack(1)">⚔️ Strike</button>
+    <button class="skill-btn ult" id="btn-ult" onclick="playerAttack(1.8)" disabled>⚡ Ultimate</button>
+    <button class="skill-btn" id="btn-heal" style="border-color:var(--green);color:var(--green);" onclick="playerHeal()">💚 Guard +HP</button>
+  </div>
+</div>
+
+<script>
+const HERO_META = {
+  wukong: { icon: '🐒', color: '#f5b942' },
+  thor:   { icon: '⚡', color: '#38bdf8' },
+  shadow: { icon: '🗡️', color: '#c084fc' }
+};
+
+const defaultState = {
+  stage: 1,
+  xp: 120,
+  mode: 'Story Mode',
+  heroes: [
+    { id: 'wukong', name: 'Wukong', lv: 1, hp: 140, atk: 34, selected: true },
+    { id: 'thor', name: 'Thor', lv: 1, hp: 160, atk: 36, selected: true },
+    { id: 'shadow', name: 'Kuro', lv: 1, hp: 125, atk: 40, selected: false }
+  ]
+};
+
+let state = loadState();
+let battle = { pMax: 0, pHp: 0, pAtk: 0, eMax: 0, eHp: 0, eAtk: 0, ultCharge: 0, locked: false, squad: [] };
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('shadow_squad_rpg_clean_v1');
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(defaultState));
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('shadow_squad_rpg_clean_v1', JSON.stringify(state));
+  } catch (e) {}
+}
+
+function resetSave() {
+  if (!confirm('সব XP, Stage আর Level রিসেট করতে চাস?')) return;
+  localStorage.removeItem('shadow_squad_rpg_clean_v1');
+  state = JSON.parse(JSON.stringify(defaultState));
+  renderLobby();
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  } else {
+    document.exitFullscreen?.().catch(() => {});
+  }
+}
+
+function renderLobby() {
+  document.getElementById('stage-pill').textContent = 'Stage: ' + state.stage;
+  document.getElementById('xp-pill').textContent = 'XP: ' + state.xp;
+
+  const grid = document.getElementById('squad-grid');
+  grid.innerHTML = state.heroes.map((h, i) => {
+    const meta = HERO_META[h.id];
+    return `
+      <div class="hero-card ${h.selected ? 'selected' : ''}" onclick="toggleHero(${i})">
+        <div class="badge">${h.selected ? 'ACTIVE' : 'BENCH'}</div>
+        <div class="emblem" style="border-color:${meta.color};color:${meta.color};">${meta.icon}</div>
+        <div class="hero-info">
+          <div class="hero-name">${h.name} Lv.${h.lv}</div>
+          <div class="hero-stats">HP ${h.hp} • ATK ${h.atk}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const up = document.getElementById('upgrade-list');
+  up.innerHTML = state.heroes.map((h, i) => {
+    const cost = h.lv * 40;
+    const meta = HERO_META[h.id];
+    return `
+      <div class="up-item">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="unit-badge" style="border-color:${meta.color};">${meta.icon}</div>
+          <div>
+            <div style="font-weight:800;font-size:14px;">${h.name} (Lv.${h.lv})</div>
+            <div style="font-size:12px;color:var(--muted);">HP: ${h.hp} (+22) • ATK: ${h.atk} (+6)</div>
+          </div>
+        </div>
+        <button class="up-btn" onclick="upgradeHero(${i})">Upgrade (${cost} XP)</button>
+      </div>
+    `;
+  }).join('');
+  saveState();
+}
+
+function toggleHero(i) {
+  const activeCount = state.heroes.filter(h => h.selected).length;
+  if (state.heroes[i].selected && activeCount <= 1) return;
+  state.heroes[i].selected = !state.heroes[i].selected;
+  renderLobby();
+}
+
+function upgradeHero(i) {
+  const h = state.heroes[i];
+  const cost = h.lv * 40;
+  if (state.xp < cost) { alert('XP কম আছে! ফাইট জিতে XP সংগ্রহ কর।'); return; }
+  state.xp -= cost;
+  h.lv++; h.hp += 22; h.atk += 6;
+  renderLobby();
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('view-' + name).classList.add('active');
+}
+
+function setMode(m, el) {
+  state.mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  saveState();
+}
+
+function spawnPop(targetEl, text, color) {
+  const pop = document.createElement('div');
+  pop.className = 'dmg-pop';
+  pop.textContent = text;
+  pop.style.color = color;
+  pop.style.top = '18px';
+  pop.style.left = '24px';
+  targetEl.appendChild(pop);
+  setTimeout(() => pop.remove(), 760);
+}
+
+function startBattle() {
+  const squad = state.heroes.filter(h => h.selected);
+  const mult = state.mode === 'Boss Rush' ? 1.45 : (state.mode === 'Arena Duel' ? 1.2 : 1.0);
+  battle.squad = squad;
+  battle.pMax = squad.reduce((s, h) => s + h.hp, 0);
+  battle.pHp = battle.pMax;
+  battle.pAtk = Math.round(squad.reduce((s, h) => s + h.atk, 0) * 0.78);
+  battle.eMax = Math.round((175 + state.stage * 50) * mult);
+  battle.eHp = battle.eMax;
+  battle.eAtk = Math.round((22 + state.stage * 6.5) * mult);
+  battle.ultCharge = 0;
+  battle.locked = false;
+
+  document.getElementById('battle-mode-label').textContent = state.mode.toUpperCase() + ' • STAGE ' + state.stage;
+  document.getElementById('e-name').textContent = 'Shadow Titan Lv.' + state.stage;
+
+  const squadBox = document.getElementById('player-squad-box');
+  squadBox.innerHTML = `
+    <div class="hp-bar"><div class="hp-fill" id="p-hp-fill"></div></div>
+    <div id="p-hp-text" style="font-size:11px;font-weight:700;margin-bottom:2px;"></div>
+    ${squad.map(h => {
+      const m = HERO_META[h.id];
+      return `<div class="unit-row"><div class="unit-badge" style="border-color:${m.color};">${m.icon}</div><span style="font-size:12px;font-weight:800;">${h.name} Lv.${h.lv}</span></div>`;
+    }).join('')}
+  `;
+
+  document.getElementById('battle-log').textContent = 'তোর পালা! Strike বা Guard দিয়ে Ult Charge বাড়িয়ে Ultimate মার।';
+  updateBattleUI();
+  document.getElementById('battle-view').classList.add('active');
+}
+
+function updateBattleUI() {
+  const pFill = document.getElementById('p-hp-fill');
+  const eFill = document.getElementById('e-hp-fill');
+  if (pFill) pFill.style.width = Math.max(0, (battle.pHp / battle.pMax) * 100) + '%';
+  if (eFill) eFill.style.width = Math.max(0, (battle.eHp / battle.eMax) * 100) + '%';
+  const pTxt = document.getElementById('p-hp-text');
+  const eTxt = document.getElementById('e-hp-text');
+  if (pTxt) pTxt.textContent = `Squad HP: ${Math.max(0, battle.pHp)} / ${battle.pMax}`;
+  if (eTxt) eTxt.textContent = `Boss HP: ${Math.max(0, battle.eHp)} / ${battle.eMax}`;
+  document.getElementById('ult-charge-label').textContent = `ULT CHARGE: ${Math.min(2, battle.ultCharge)}/2`;
+  document.getElementById('btn-ult').disabled = battle.ultCharge < 2 || battle.locked;
+  document.getElementById('btn-strike').disabled = battle.locked;
+  document.getElementById('btn-heal').disabled = battle.locked;
+}
+
+function playerAttack(mult) {
+  if (battle.locked) return;
+  const isUlt = mult > 1.5;
+  if (isUlt && battle.ultCharge < 2) return;
+
+  battle.locked = true;
+  if (isUlt) battle.ultCharge = 0;
+  else battle.ultCharge = Math.min(2, battle.ultCharge + 1);
+
+  const pBox = document.getElementById('player-squad-box');
+  const eBox = document.getElementById('enemy-box');
+  pBox.classList.add('dash-right');
+  setTimeout(() => pBox.classList.remove('dash-right'), 200);
+
+  const dmg = Math.round(battle.pAtk * mult * (0.9 + Math.random() * 0.25));
+  battle.eHp -= dmg;
+  eBox.classList.add('shake');
+  setTimeout(() => eBox.classList.remove('shake'), 260);
+  spawnPop(eBox, `-${dmg}`, isUlt ? '#f5b942' : '#f8fafc');
+  document.getElementById('battle-log').textContent = `${isUlt ? '⚡ ULTIMATE' : '⚔️ STRIKE'}: ${dmg} DMG!`;
+  updateBattleUI();
+
+  if (battle.eHp <= 0) {
+    const reward = 55 + state.stage * 20;
+    state.xp += reward;
+    state.stage++;
+    saveState();
+    document.getElementById('battle-log').textContent = `VICTORY! +${reward} XP ও পরের Stage আনলক!`;
+    setTimeout(() => { exitBattle(); renderLobby(); }, 1100);
+    return;
+  }
+  setTimeout(enemyTurn, 650);
+}
+
+function playerHeal() {
+  if (battle.locked) return;
+  battle.locked = true;
+  battle.ultCharge = Math.min(2, battle.ultCharge + 1);
+  const heal = Math.round(battle.pMax * 0.24);
+  battle.pHp = Math.min(battle.pMax, battle.pHp + heal);
+  spawnPop(document.getElementById('player-squad-box'), `+${heal}`, '#22c55e');
+  document.getElementById('battle-log').textContent = `💚 GUARD: +${heal} HP রিকভার ও +1 Ult Charge!`;
+  updateBattleUI();
+  setTimeout(enemyTurn, 650);
+}
+
+function enemyTurn() {
+  const eBox = document.getElementById('enemy-box');
+  const pBox = document.getElementById('player-squad-box');
+  eBox.classList.add('dash-left');
+  setTimeout(() => eBox.classList.remove('dash-left'), 200);
+
+  const dmg = Math.round(battle.eAtk * (0.85 + Math.random() * 0.3));
+  battle.pHp -= dmg;
+  pBox.classList.add('shake');
+  setTimeout(() => pBox.classList.remove('shake'), 260);
+  spawnPop(pBox, `-${dmg}`, '#ef4444');
+  document.getElementById('battle-log').textContent = `Shadow Titan আঘাত করেছে: ${dmg} DMG!`;
+  updateBattleUI();
+
+  if (battle.pHp <= 0) {
+    document.getElementById('battle-log').textContent = 'DEFEATED! হিরো আপগ্রেড করে আবার চেষ্টা কর।';
+    setTimeout(() => { exitBattle(); renderLobby(); }, 1100);
+    return;
+  }
+  battle.locked = false;
+  updateBattleUI();
+}
+
+function exitBattle() {
+  document.getElementById('battle-view').classList.remove('active');
+}
+
+renderLobby();
+</script>
+</body>
+</html>

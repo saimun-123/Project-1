@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Wukong & Thor Squad RPG</title>
+<style id="clean-fit-v2">
+*{box-sizing:border-box;user-select:none}
+html,body{
+  width:100dvw !important;
+  height:100dvh !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  background:#020617 !important;
+  color:#f8fafc;
+  font-family:sans-serif;
+}
+
+/* Click to Rotate Fullscreen Overlay */
+#rotateOverlay{
+  position:fixed;inset:0;z-index:9999;
+  background:radial-gradient(circle at center,#0f172a 0%,#020617 75%,#000000 100%);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  text-align:center;padding:20px;cursor:pointer;
+}
+.rot-icon{font-size:48px;margin-bottom:12px;animation:spinHint 2s infinite ease-in-out}
+.rot-title{font-size:26px;font-weight:900;letter-spacing:1.2px;color:#38bdf8;text-transform:uppercase}
+.rot-sub{font-size:12px;color:#94a3b8;margin-top:8px}
+@keyframes spinHint{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-90deg)}}
+
+.app{
+  position:relative;
+  width:100dvw;
+  height:100dvh;
+  background:radial-gradient(circle at top right,#172554 0%,#090d16 55%,#020617 100%);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.landscape-ready .app{
+  position:fixed !important;
+  top:50% !important;
+  left:50% !important;
+  width:100dvh !important;
+  height:100dvw !important;
+  max-width:none !important;
+  min-height:0 !important;
+  transform:translate(-50%,-50%) rotate(90deg) !important;
+  transform-origin:center center !important;
+  display:flex !important;
+  flex-direction:column !important;
+  overflow:hidden !important;
+}
+@media (orientation: landscape){
+  body.landscape-ready .app{
+    position:relative !important;
+    top:auto !important;
+    left:auto !important;
+    width:100dvw !important;
+    height:100dvh !important;
+    transform:none !important;
+  }
+}
+
+.top{
+  background:rgba(3,7,18,.88);
+  padding:5px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid #1e293b;
+  font-size:11px;
+  flex-shrink:0;
+}
+.xp-pill{
+  background:#172554;border:1px solid #3b82f6;color:#93c5fd;
+  padding:2px 10px;border-radius:999px;font-weight:bold;font-size:11px;
+}
+.tabs{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  background:rgba(15,23,42,.9);border-bottom:1px solid #1e293b;
+  flex-shrink:0;
+}
+.tab{
+  padding:6px 4px;text-align:center;font-size:11px;font-weight:bold;
+  color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;
+}
+.tab.active{color:#fff;border-bottom-color:#38bdf8;background:#1e293b}
+
+.pad{
+  padding:8px 12px;
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  position:relative;
+}
+
+/* Lobby Layout */
+#view-lobby{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  height:100%;
+  overflow:hidden;
+}
+.lobby-banner{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:rgba(15,23,42,.78);
+  border:1px solid #334155;
+  border-radius:10px;
+  padding:6px 10px;
+  font-size:11px;
+}
+.lobby-squad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:6px;
+}
+.slot{
+  background:rgba(30,41,59,.85);
+  border:1px solid #475569;
+  border-radius:10px;
+  padding:8px;
+  text-align:center;
+}
+.slot-empty{
+  border-style:dashed;
+  color:#64748b;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  min-height:76px;
+  font-size:11px;
+}
+.lobby-bottom{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:10px;
+  margin-top:6px;
+}
+.mode-tag{
+  background:rgba(15,23,42,.88);
+  border:1px solid #334155;
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:11px;
+  color:#cbd5e1;
+}
+.fight-btn{
+  background:linear-gradient(135deg,#f59e0b 0%,#ea580c 55%,#dc2626 100%);
+  color:#fff;
+  border:2px solid #fde047;
+  border-radius:12px;
+  padding:10px 26px;
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  cursor:pointer;
+  box-shadow:0 4px 18px rgba(234,88,12,.45);
+  text-transform:uppercase;
+}
+.fight-btn:active{transform:scale(.97)}
+
+/* Mode Selector Modal */
+#modeModal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:2500;
+  background:rgba(2,6,23,.82);
+  justify-content:center;
+  align-items:center;
+  padding:12px;
+}
+.mode-box{
+  width:100%;
+  max-width:560px;
+  background:#0f172a;
+  border:1px solid #38bdf8;
+  border-radius:14px;
+  padding:12px;
+}
+.mode-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:8px;
+}
+.mode-card{
+  background:#1e293b;
+  border:1px solid #334155;
+  border-radius:10px;
+  padding:9px;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.mode-card:hover{border-color:#f59e0b}
+
+/* Roster & Level */
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:8px 10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn{padding:6px 12px;border:none;border-radius:8px;font-weight:bold;font-size:11px;color:#fff;cursor:pointer;background:#2563eb}
+.btn-green{background:#16a34a}
+.btn-gold{background:#d97706}
+.btn-dim{background:#334155;color:#cbd5e1}
+.badge{font-size:10px;padding:2px 6px;border-radius:999px;font-weight:bold;background:#334155;color:#e2e8f0}
+.badge-on{background:#14532d;color:#86efac}
+
+/* Battle Arena */
+#view-battle{
+  display:none;
+  flex-direction:column;
+  height:100%;
+  overflow:hidden;
+}
+#inBattle{
+  display:grid;
+  grid-template-columns:1.15fr 1fr;
+  gap:8px;
+  flex:1 1 auto;
+  min-height:0;
+}
+.stage{
+  position:relative;
+  height:100%;
+  min-height:0;
+  background:linear-gradient(180deg,#1e1b4b 0%,#0f172a 62%,#1e293b 100%);
+  padding:6px 8px;
+  border-radius:10px;
+  border:1px solid #334155;
+  overflow:hidden;
+}
+.hud{background:rgba(2,6,23,.9);padding:4px 7px;border-radius:8px;width:52%;font-size:10px;border:1px solid #334155}
+.hud-p{position:absolute;bottom:8px;right:8px}
+.bar{height:5px;background:#334155;border-radius:4px;overflow:hidden;margin-top:3px}
+.fill{height:100%;width:100%;background:#22c55e;transition:width .25s}
+.f-e{position:absolute;top:34px;right:16px;font-size:26px}
+.f-p{position:absolute;bottom:8px;left:14px;font-size:26px}
+
+.b-panel{
+  display:flex;flex-direction:column;justify-content:space-between;
+  background:#0f172a;border:1px solid #1e293b;border-radius:10px;
+  padding:6px 8px;min-height:0;overflow:hidden;
+}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mbtn{padding:6px 5px;background:#1e293b;color:#fff;border:1px solid #475569;border-radius:8px;font-size:10px;font-weight:bold;cursor:pointer}
+.sw-box{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.sw-btn{padding:3px 6px;font-size:10px;border-radius:6px;border:1px solid #475569;background:#020617;color:#e2e8f0;cursor:pointer}
+.sw-btn.active{border-color:#38bdf8;background:#172554}
+.log{background:#020617;border:1px solid #1e293b;border-radius:8px;padding:4px 6px;height:46px;overflow-y:auto;font-size:10px;color:#cbd5e1;margin-top:4px}
+</style>
+
+<style id="modal-rotate-fix">
+body.landscape-ready #modeModal .mode-box {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 82dvh !important;
+  max-width: 540px !important;
+  max-height: 86dvw !important;
+  transform: translate(-50%, -50%) rotate(90deg) !important;
+  transform-origin: center center !important;
+  overflow-y: auto !important;
+  z-index: 3000 !important;
+}
+body.landscape-ready .lobby-squad {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 8px !important;
+}
+@media (orientation: landscape) {
+  body.landscape-ready #modeModal .mode-box {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: 560px !important;
+    max-height: none !important;
+    transform: none !important;
+  }
+}
+</style>
+
+
+<style id="sf-dark-gray-3d">
+.app {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(148,163,184,0.16) 0%, rgba(39,39,42,0.72) 48%, rgba(15,15,18,0.98) 100%),
+    linear-gradient(180deg, #27272a 0%, #18181b 55%, #09090b 100%) !important;
+}
+.top {
+  background: rgba(15, 15, 18, 0.85) !important;
+  border-bottom-color: #3f3f46 !important;
+}
+.tabs {
+  background: rgba(24, 24, 27, 0.9) !important;
+  border-bottom-color: #3f3f46 !important;
+}
+.tab.active {
+  background: #27272a !important;
+  border-bottom-color: #e4e4e7 !important;
+}
+.lobby-banner {
+  background: rgba(24, 24, 27, 0.78) !important;
+  border-color: #3f3f46 !important;
+}
+.lobby-squad {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+  align-items: end !important;
+  flex: 1 !important;
+  margin-top: 8px !important;
+  padding: 6px 4px !important;
+  perspective: 800px !important;
+}
+.slot {
+  position: relative !important;
+  background: linear-gradient(180deg, rgba(63,63,70,0.22) 0%, rgba(24,24,27,0.88) 72%, rgba(9,9,11,0.98) 100%) !important;
+  border: 1px solid rgba(161,161,170,0.28) !important;
+  border-radius: 12px !important;
+  padding: 8px !important;
+  height: 100% !important;
+  min-height: 112px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 24px rgba(0,0,0,0.65) !important;
+}
+.slot::after {
+  content: "" !important;
+  width: 76% !important;
+  height: 10px !important;
+  margin-top: 4px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(ellipse at center, rgba(212,212,216,0.38) 0%, rgba(24,24,27,0.1) 75%, transparent 100%) !important;
+  transform: rotateX(55deg) !important;
+}
+.hero-art-wrap {
+  width: 100% !important;
+  flex: 1 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-end !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+.hero-art-img {
+  max-height: 92px !important;
+  max-width: 100% !important;
+  object-fit: cover !important;
+  object-position: top center !important;
+  border-radius: 8px !important;
+  filter: contrast(1.08) drop-shadow(0 8px 14px rgba(0,0,0,0.85)) !important;
+  animation: sfBreath 3.2s ease-in-out infinite !important;
+}
+.hero-art-fallback {
+  font-size: 36px !important;
+  line-height: 1 !important;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.8)) !important;
+  animation: sfBreath 3.2s ease-in-out infinite !important;
+}
+@keyframes sfBreath {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-2px) scale(1.02); }
+}
+.slot-meta {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-top: 4px;
+}
+.slot-empty {
+  justify-content: center !important;
+  background: linear-gradient(180deg, rgba(39,39,42,0.28) 0%, rgba(18,18,21,0.85) 100%) !important;
+  border-style: dashed !important;
+  border-color: #52525b !important;
+}
+.slot-empty::after {
+  display: none !important;
+}
+.mode-tag {
+  background: rgba(24, 24, 27, 0.9) !important;
+  border-color: #3f3f46 !important;
+}
+</style>
+
+
+<style id="force-dark-3d-lobby">
+body.landscape-ready .app, .app {
+  background: radial-gradient(circle at 50% 25%, #3f3f46 0%, #18181b 58%, #09090b 100%) !important;
+  color: #f4f4f5 !important;
+}
+body.landscape-ready .top, .top {
+  background: rgba(9, 9, 11, 0.9) !important;
+  border-bottom: 1px solid #3f3f46 !important;
+}
+body.landscape-ready .tabs, .tabs {
+  background: rgba(24, 24, 27, 0.92) !important;
+  border-bottom: 1px solid #3f3f46 !important;
+}
+body.landscape-ready .tab.active, .tab.active {
+  background: #27272a !important;
+  border-bottom-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+body.landscape-ready .lobby-banner, .lobby-banner {
+  background: rgba(24, 24, 27, 0.85) !important;
+  border: 1px solid #52525b !important;
+  flex-shrink: 0 !important;
+}
+body.landscape-ready .lobby-squad, .lobby-squad {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+  margin-top: 6px !important;
+}
+body.landscape-ready .slot, .slot {
+  position: relative !important;
+  height: 100% !important;
+  min-height: 96px !important;
+  background: linear-gradient(180deg, rgba(82,82,91,0.28) 0%, rgba(24,24,27,0.92) 75%, rgba(9,9,11,0.99) 100%) !important;
+  border: 1px solid #71717a !important;
+  border-radius: 10px !important;
+  padding: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 20px rgba(0,0,0,0.7) !important;
+}
+body.landscape-ready .slot-empty, .slot-empty {
+  justify-content: center !important;
+  background: rgba(24, 24, 27, 0.65) !important;
+  border-style: dashed !important;
+  border-color: #52525b !important;
+}
+.wukong-frame {
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  border-radius: 7px !important;
+  background: radial-gradient(circle at center, rgba(161,161,170,0.22), rgba(9,9,11,0.85)) !important;
+}
+.wukong-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: top center !important;
+  filter: contrast(1.08) brightness(1.03) !important;
+  animation: idleFloat 3s ease-in-out infinite !important;
+}
+.wukong-emoji {
+  font-size: 32px !important;
+  animation: idleFloat 3s ease-in-out infinite !important;
+}
+@keyframes idleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+.slot-footer {
+  width: 100% !important;
+  text-align: center !important;
+  padding-top: 4px !important;
+  z-index: 2 !important;
+}
+body.landscape-ready .lobby-bottom, .lobby-bottom {
+  flex-shrink: 0 !important;
+  margin-top: 6px !important;
+}
+body.landscape-ready .mode-tag, .mode-tag {
+  background: rgba(24, 24, 27, 0.92) !important;
+  border: 1px solid #52525b !important;
+}
+</style>
+
+
+
+
+
+<style id="unified-2d-to-3d-vibe">
+.wukong-frame,
+.hero-slot,
+.hero-card,
+[class*="hero"] .frame,
+[class*="slot"] .portrait {
+  position: relative !important;
+  perspective: 900px !important;
+  transform-style: preserve-3d !important;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(161, 161, 170, 0.34) 0%, rgba(63, 63, 70, 0.22) 38%, rgba(15, 15, 18, 0.96) 82%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -18px 28px rgba(0, 0, 0, 0.85),
+    0 18px 35px rgba(0, 0, 0, 0.75) !important;
+  overflow: hidden !important;
+}
+
+.wukong-frame::before,
+.hero-slot::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -10% !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  background:
+    radial-gradient(ellipse at 30% 18%, rgba(255, 255, 255, 0.16), transparent 45%),
+    radial-gradient(ellipse at 50% 92%, rgba(0, 0, 0, 0.92), transparent 62%) !important;
+}
+
+.wukong-frame::after,
+.hero-slot::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 14% !important;
+  right: 14% !important;
+  bottom: 6% !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.45) 55%, transparent 75%) !important;
+  filter: blur(5px) !important;
+  pointer-events: none !important;
+  z-index: 3 !important;
+}
+
+.wukong-img,
+.hero-slot img,
+.hero-card img,
+[class*="hero"] img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: top center !important;
+  transform: translateZ(18px) rotateX(2deg) scale(1.03) !important;
+  filter:
+    contrast(1.28)
+    brightness(0.94)
+    saturate(0.32)
+    drop-shadow(0 12px 14px rgba(0, 0, 0, 0.85))
+    drop-shadow(-2px -2px 6px rgba(228, 228, 231, 0.18)) !important;
+  transition: transform 0.25s ease, filter 0.25s ease !important;
+}
+
+.wukong-frame:hover .wukong-img,
+.hero-slot:hover img {
+  transform: translateZ(28px) rotateX(0deg) scale(1.06) !important;
+  filter:
+    contrast(1.34)
+    brightness(1.0)
+    saturate(0.42)
+    drop-shadow(0 16px 20px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 10px rgba(212, 212, 216, 0.24)) !important;
+}
+</style>
+
+</head>
+<body>
+
+<div id="rotateOverlay" onclick="launchLandscapeGame()">
+  <div class="rot-icon">📱</div>
+  <div class="rot-title">Click to Rotate</div>
+  <div class="rot-sub">Tap anywhere on the screen to enter Full Landscape Mode</div>
+</div>
+
+<div class="app">
+  <div class="top">
+    <b>Wukong & Thor Squad RPG</b>
+    <div>
+      <span class="xp-pill">Stage: <span id="storyStageVal">1</span></span>
+      <span class="xp-pill" style="margin-left:4px">XP: <span id="xpVal">0</span></span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div id="t-lobby" class="tab active" onclick="switchTab('lobby')">Lobby</div>
+    <div id="t-squad" class="tab" onclick="switchTab('squad')">Squad (Max 3)</div>
+    <div id="t-level" class="tab" onclick="switchTab('level')">Level Up</div>
+  </div>
+
+  <!-- LOBBY VIEW -->
+  <div id="view-lobby" class="pad">
+    <div class="lobby-banner">
+      <div><b>SQUAD READY</b> • Pick up to 3 fighters in Squad tab</div>
+      <div style="color:#fbbf24;font-weight:bold">Selected: <span id="squadCount">0</span>/3</div>
+    </div>
+
+    <div id="lobbySquadSlots" class="lobby-squad"></div>
+
+    <div class="lobby-bottom">
+      <div class="mode-tag">
+        Last Mode: <b id="lastModeText" style="color:#38bdf8">Story Mode</b>
+      </div>
+      <button class="fight-btn" onclick="openModeModal()">FIGHT</button>
+    </div>
+  </div>
+
+  <!-- SQUAD VIEW -->
+  <div id="view-squad" class="pad" style="display:none">
+    <div id="squadList" class="grid-2"></div>
+  </div>
+
+  <!-- LEVEL UP VIEW -->
+  <div id="view-level" class="pad" style="display:none">
+    <div id="levelList" class="grid-2"></div>
+  </div>
+
+  <!-- BATTLE VIEW -->
+  <div id="view-battle" class="pad" style="display:none">
+    <div id="inBattle">
+      <div class="stage">
+        <div class="hud">
+          <div><b id="eName">Enemy</b> <span id="eLv" style="color:#fca5a5">Lv.1</span></div>
+          <div class="bar"><div id="eBar" class="fill"></div></div>
+          <div id="eHpTxt">0/0</div>
+        </div>
+        <div id="eIcon" class="f-e">👹</div>
+
+        <div id="pIcon" class="f-p">🐒</div>
+        <div class="hud hud-p">
+          <div><b id="pName">Wukong</b> <span id="pLv" style="color:#93c5fd">Lv.1</span></div>
+          <div class="bar"><div id="pBar" class="fill"></div></div>
+          <div id="pHpTxt">0/0</div>
+        </div>
+      </div>
+
+      <div class="b-panel">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span id="activeModeBadge" style="font-size:10px;color:#fbbf24;font-weight:bold">STORY MODE</span>
+            <button class="btn btn-dim" style="padding:2px 7px;font-size:10px" onclick="returnToLobby()">Lobby</button>
+          </div>
+          <div id="moveGrid" class="moves"></div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:5px;">Switch Active Hero:</div>
+          <div id="switchRow" class="sw-box"></div>
+        </div>
+        <div id="bLog" class="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3-MODE POPUP MODAL -->
+<div id="modeModal" onclick="closeModeModal(event)">
+  <div class="mode-box" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b style="font-size:13px;color:#38bdf8">SELECT BATTLE MODE</b>
+      <button class="btn btn-dim" style="padding:3px 8px;font-size:10px" onclick="hideModeModal()">Close</button>
+    </div>
+    <div class="mode-grid">
+      <div class="mode-card" onclick="startMode('story')">
+        <div>
+          <div style="font-size:12px;font-weight:900;color:#fbbf24">1. Story Mode</div>
+          <div style="font-size:10px;color:#cbd5e1;margin-top:4px">Chapter <span id="modalChapter">1</span> campaign against mythic guardians.</div>
+        </div>
+        <div style="font-size:10px;color:#86efac;margin-top:6px;font-weight:bold">Reward: +40 XP & Stage+1</div>
+      </div>
+
+      <div class="mode-card" onclick="startMode('online')">
+        <div>
+          <div style="font-size:12px;font-weight:900;color:#38bdf8">2. Online Arena</div>
+          <div style="font-size:10px;color:#cbd5e1;margin-top:4px">Fast rival squad clash with dynamic opponent stats.</div>
+        </div>
+        <div style="font-size:10px;color:#93c5fd;margin-top:6px;font-weight:bold">Reward: +45 Arena XP</div>
+      </div>
+
+      <div class="mode-card" onclick="startMode('challenge')">
+        <div>
+          <div style="font-size:12px;font-weight:900;color:#f87171">3. Challenge League</div>
+          <div style="font-size:10px;color:#cbd5e1;margin-top:4px">High-power boss gauntlet for veteran squads.</div>
+        </div>
+        <div style="font-size:10px;color:#fca5a5;margin-top:6px;font-weight:bold">Reward: +65 League XP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function launchLandscapeGame(){
+  const ov = document.getElementById('rotateOverlay');
+  document.body.classList.add('landscape-ready');
+  try {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch(e){}
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('landscape');
+    }
+  } catch(e){}
+  if (ov) ov.style.display = 'none';
+}
+
+const DEFAULT_HEROES = [
+  { id:'wukong', name:'Wukong', icon:'🐒', baseHp:110, baseAtk:24, baseDef:12, moves:['Ruyi Staff Strike','Cloud Somersault'] },
+  { id:'thor', name:'Thor', icon:'⚡', baseHp:125, baseAtk:26, baseDef:15, moves:['Mjolnir Slam','Storm Call'] }
+];
+
+let state = loadState();
+let battle = null;
+let currentMode = 'story';
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem('wt_squad_rpg_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        xp: parsed.xp ?? 60,
+        squad: (parsed.squad && parsed.squad.length) ? parsed.squad.slice(0,3) : ['wukong','thor'],
+        levels: parsed.levels || { wukong:1, thor:1 },
+        storyStage: parsed.storyStage || 1
+      };
+    }
+  } catch(e){}
+  return { xp:60, squad:['wukong','thor'], levels:{ wukong:1, thor:1 }, storyStage:1 };
+}
+
+function saveState(){
+  try { localStorage.setItem('wt_squad_rpg_v1', JSON.stringify(state)); } catch(e){}
+}
+
+function getStats(id){
+  const h = DEFAULT_HEROES.find(x => x.id === id);
+  const lv = state.levels[id] || 1;
+  const g = lv - 1;
+  return { ...h, lv, maxHp:h.baseHp+g*14, atk:h.baseAtk+g*4, def:h.baseDef+g*2, upgradeCost:30+g*20 };
+}
+
+function updTop(){
+  document.getElementById('xpVal').textContent = state.xp;
+  document.getElementById('storyStageVal').textContent = state.storyStage;
+}
+
+function switchTab(tab){
+  ['lobby','squad','level'].forEach(t => {
+    document.getElementById('t-'+t).classList.toggle('active', t === tab);
+    document.getElementById('view-'+t).style.display = (t === tab) ? (t === 'lobby' ? 'flex' : 'block') : 'none';
+  });
+  document.getElementById('view-battle').style.display = 'none';
+  if (tab === 'lobby') renderLobby();
+  if (tab === 'squad') renderSquad();
+  if (tab === 'level') renderLevelUp();
+}
+
+function renderLobby(){
+  updTop();
+  document.getElementById('squadCount').textContent = state.squad.length;
+  const modeNames = { story:'Story Mode', online:'Online Arena', challenge:'Challenge League' };
+  document.getElementById('lastModeText').textContent = modeNames[currentMode] || 'Story Mode';
+
+  const box = document.getElementById('lobbySquadSlots');
+  box.innerHTML = '';
+  for (let i = 0; i < 3; i++){
+    const id = state.squad[i];
+    const div = document.createElement('div');
+    if (id){
+      const s = getStats(id);
+      div.className = 'slot';
+      div.innerHTML = `<div style="font-size:22px">${s.icon}</div>
+        <div style="font-weight:bold;font-size:12px;margin-top:2px">${s.name} <span style="color:#93c5fd">Lv.${s.lv}</span></div>
+        <div style="font-size:10px;color:#94a3b8">HP ${s.maxHp} • ATK ${s.atk}</div>`;
+    } else {
+      div.className = 'slot slot-empty';
+      div.innerHTML = `<div>Empty Slot ${i+1}</div><div style="font-size:10px">Go to Squad</div>`;
+    }
+    box.appendChild(div);
+  }
+}
+
+function openModeModal(){
+  if (!state.squad.length) return;
+  document.getElementById('modalChapter').textContent = state.storyStage;
+  document.getElementById('modeModal').style.display = 'flex';
+}
+
+function hideModeModal(){
+  document.getElementById('modeModal').style.display = 'none';
+}
+
+function closeModeModal(e){
+  if (e.target.id === 'modeModal') hideModeModal();
+}
+
+function toggleSquad(id){
+  const idx = state.squad.indexOf(id);
+  if (idx > -1){ if (state.squad.length <= 1) return; state.squad.splice(idx, 1); }
+  else { if (state.squad.length >= 3) return; state.squad.push(id); }
+  saveState(); renderSquad();
+}
+
+function renderSquad(){
+  updTop();
+  const box = document.getElementById('squadList');
+  box.innerHTML = '';
+  DEFAULT_HEROES.forEach(h => {
+    const s = getStats(h.id);
+    const inSquad = state.squad.includes(h.id);
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `<div class="row"><div>
+      <span style="font-size:20px">${s.icon}</span> <b style="margin-left:4px">${s.name}</b>
+      <span class="badge ${inSquad ? 'badge-on' : ''}">${inSquad ? 'IN SQUAD' : 'BENCH'}</span>
+      <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Lv.${s.lv} • HP ${s.maxHp} • ATK ${s.atk} • DEF ${s.def}</div>
+    </div><button class="btn ${inSquad ? 'btn-dim' : 'btn-green'}" onclick="toggleSquad('${h.id}')">${inSquad ? 'Remove' : 'Add'}</button></div>`;
+    box.appendChild(div);
+  });
+}
+
+function levelUpHero(id){
+  const s = getStats(id);
+  if (state.xp < s.upgradeCost) return;
+  state.xp -= s.upgradeCost;
+  state.levels[id] = s.lv + 1;
+  saveState(); renderLevelUp();
+}
+
+function renderLevelUp(){
+  updTop();
+  const box = document.getElementById('levelList');
+  box.innerHTML = '';
+  DEFAULT_HEROES.forEach(h => {
+    const s = getStats(h.id);
+    const can = state.xp >= s.upgradeCost;
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `<div class="row"><div>
+      <span style="font-size:20px">${s.icon}</span> <b style="margin-left:4px">${s.name}</b> <span style="color:#93c5fd;font-size:11px;">Lv.${s.lv}</span>
+      <div style="font-size:10px;color:#cbd5e1;margin-top:2px;">HP: ${s.maxHp} (+14) • ATK: ${s.atk} (+4) • DEF: ${s.def} (+2)</div>
+    </div><button class="btn btn-gold" ${can ? '' : 'disabled style="opacity:.45"'} onclick="levelUpHero('${h.id}')">Lv Up (${s.upgradeCost} XP)</button></div>`;
+    box.appendChild(div);
+  });
+}
+
+function logB(msg){
+  const d = document.getElementById('bLog');
+  d.innerHTML += '<div>• ' + msg + '</div>';
+  d.scrollTop = d.scrollHeight;
+}
+
+function returnToLobby(){
+  battle = null;
+  document.getElementById('view-battle').style.display = 'none';
+  switchTab('lobby');
+}
+
+function startMode(mode){
+  currentMode = mode;
+  hideModeModal();
+
+  const avgLv = Math.max(1, Math.round(state.squad.reduce((a,id)=>a+getStats(id).lv,0) / state.squad.length));
+  const hps = {};
+  state.squad.forEach(id => { hps[id] = getStats(id).maxHp; });
+
+  let cfg = {
+    label: 'STORY MODE',
+    eName: `Story Guardian Ch.${state.storyStage}`,
+    eIcon: '🐉',
+    eLv: Math.max(1, state.storyStage),
+    eMaxHp: 90 + (state.storyStage - 1) * 16,
+    eAtk: 15 + (state.storyStage - 1) * 3,
+    eDef: 7 + (state.storyStage - 1) * 2,
+    rewardXp: 40 + state.storyStage * 5
+  };
+
+  if (mode === 'online'){
+    cfg = {
+      label: 'ONLINE ARENA',
+      eName: 'Arena Rival #' + (100 + Math.floor(Math.random()*899)),
+      eIcon: '⚔️',
+      eLv: avgLv,
+      eMaxHp: 95 + (avgLv - 1) * 18,
+      eAtk: 17 + (avgLv - 1) * 4,
+      eDef: 8 + (avgLv - 1) * 2,
+      rewardXp: 45 + avgLv * 8
+    };
+  } else if (mode === 'challenge'){
+    cfg = {
+      label: 'CHALLENGE LEAGUE',
+      eName: 'League Sovereign',
+      eIcon: '👑',
+      eLv: avgLv + 2,
+      eMaxHp: 130 + avgLv * 22,
+      eAtk: 22 + avgLv * 4,
+      eDef: 11 + avgLv * 2,
+      rewardXp: 65 + avgLv * 12
+    };
+  }
+
+  battle = {
+    mode,
+    activeId: state.squad[0],
+    hps,
+    eName: cfg.eName,
+    eIcon: cfg.eIcon,
+    eLv: cfg.eLv,
+    eMaxHp: cfg.eMaxHp,
+    eHp: cfg.eMaxHp,
+    eAtk: cfg.eAtk,
+    eDef: cfg.eDef,
+    rewardXp: cfg.rewardXp,
+    busy: false
+  };
+
+  document.getElementById('activeModeBadge').textContent = cfg.label;
+  ['lobby','squad','level'].forEach(t => {
+    document.getElementById('view-'+t).style.display = 'none';
+  });
+  document.getElementById('view-battle').style.display = 'flex';
+  document.getElementById('bLog').innerHTML = '';
+  logB(`${cfg.label} started vs ${cfg.eName}!`);
+  renderBattleUI();
+}
+
+function switchActive(id){
+  if (!battle || battle.busy || battle.hps[id] <= 0 || id === battle.activeId) return;
+  battle.activeId = id;
+  logB(`Switched to ${getStats(id).name}!`);
+  renderBattleUI();
+}
+
+function renderBattleUI(){
+  if (!battle) return;
+  const p = getStats(battle.activeId);
+  const pCur = battle.hps[battle.activeId];
+  document.getElementById('pName').textContent = p.name;
+  document.getElementById('pLv').textContent = 'Lv.' + p.lv;
+  document.getElementById('pIcon').textContent = p.icon;
+  document.getElementById('pBar').style.width = Math.max(0, (pCur/p.maxHp)*100) + '%';
+  document.getElementById('pHpTxt').textContent = `${pCur}/${p.maxHp}`;
+
+  document.getElementById('eName').textContent = battle.eName;
+  document.getElementById('eLv').textContent = 'Lv.' + battle.eLv;
+  document.getElementById('eIcon').textContent = battle.eIcon;
+  document.getElementById('eBar').style.width = Math.max(0, (battle.eHp/battle.eMaxHp)*100) + '%';
+  document.getElementById('eHpTxt').textContent = `${battle.eHp}/${battle.eMaxHp}`;
+
+  const mg = document.getElementById('moveGrid');
+  mg.innerHTML = '';
+  p.moves.forEach((m, idx) => {
+    const b = document.createElement('button');
+    b.className = 'mbtn';
+    b.textContent = m + (idx === 1 ? ' (Heavy)' : '');
+    b.onclick = () => playerAttack(idx);
+    mg.appendChild(b);
+  });
+
+  const sr = document.getElementById('switchRow');
+  sr.innerHTML = '';
+  state.squad.forEach(id => {
+    const s = getStats(id);
+    const b = document.createElement('button');
+    b.className = 'sw-btn' + (id === battle.activeId ? ' active' : '');
+    b.disabled = battle.hps[id] <= 0;
+    b.textContent = `${s.icon} ${s.name} (${battle.hps[id]}/${s.maxHp})`;
+    b.onclick = () => switchActive(id);
+    sr.appendChild(b);
+  });
+}
+
+function playerAttack(mIdx){
+  if (!battle || battle.busy) return;
+  battle.busy = true;
+  const p = getStats(battle.activeId);
+  const mult = mIdx === 1 ? 1.3 : 1.0;
+  const dmg = Math.max(6, Math.round((p.atk + Math.floor(Math.random()*6))*mult - battle.eDef*0.35));
+  battle.eHp = Math.max(0, battle.eHp - dmg);
+  logB(`${p.name} used ${p.moves[mIdx]} for ${dmg} DMG!`);
+  renderBattleUI();
+
+  if (battle.eHp <= 0) {
+    state.xp += battle.rewardXp;
+    if (battle.mode === 'story') state.storyStage += 1;
+    saveState();
+    updTop();
+    logB(`Victory! +${battle.rewardXp} XP earned!`);
+    setTimeout(() => returnToLobby(), 1200);
+    return;
+  }
+
+  setTimeout(() => {
+    if (!battle) return;
+    const curP = getStats(battle.activeId);
+    const edmg = Math.max(4, Math.round((battle.eAtk + Math.floor(Math.random()*5)) - curP.def*0.4));
+    battle.hps[battle.activeId] = Math.max(0, battle.hps[battle.activeId] - edmg);
+    logB(`${battle.eName} hit ${curP.name} for ${edmg} DMG!`);
+    if (battle.hps[battle.activeId] <= 0) {
+      logB(`${curP.name} is down!`);
+      const nextAlive = state.squad.find(id => battle.hps[id] > 0);
+      if (nextAlive) { battle.activeId = nextAlive; logB(`Auto-switched to ${getStats(nextAlive).name}!`); }
+      else {
+        logB(`Squad defeated! +10 XP.`);
+        state.xp += 10; saveState(); updTop();
+        setTimeout(() => returnToLobby(), 1200);
+        return;
+      }
+    }
+    battle.busy = false;
+    renderBattleUI();
+  }, 550);
+}
+
+renderLobby();
+</script>
+
+<script id="wukong-lobby-art">
+const HERO_IMAGES = {
+  wukong: ['wukong.jpg', 'wukong.png', '1000003694.jpg']
+};
+
+function heroVisualHtml(id, fallbackIcon){
+  const list = HERO_IMAGES[id] || [];
+  const first = list[0] || '';
+  if (!first) return `<div class="hero-art-fallback">${fallbackIcon}</div>`;
+  return `<div class="hero-art-wrap">
+    <img src="${first}" alt="${id}" class="hero-art-img"
+      onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';">
+    <div class="hero-art-fallback" style="display:none">${fallbackIcon}</div>
+  </div>`;
+}
+
+window.renderLobby = function(){
+  updTop();
+  document.getElementById('squadCount').textContent = state.squad.length;
+  const modeNames = { story:'Story Mode', online:'Online Arena', challenge:'Challenge League' };
+  document.getElementById('lastModeText').textContent = modeNames[currentMode] || 'Story Mode';
+
+  const box = document.getElementById('lobbySquadSlots');
+  box.innerHTML = '';
+  for (let i = 0; i < 3; i++){
+    const id = state.squad[i];
+    const div = document.createElement('div');
+    if (id){
+      const s = getStats(id);
+      div.className = 'slot';
+      div.innerHTML = `${heroVisualHtml(id, s.icon)}
+        <div class="slot-meta">
+          <div style="font-weight:bold;font-size:11px;color:#f4f4f5">${s.name} <span style="color:#a1a1aa">Lv.${s.lv}</span></div>
+          <div style="font-size:10px;color:#a1a1aa">HP ${s.maxHp} • ATK ${s.atk}</div>
+        </div>`;
+    } else {
+      div.className = 'slot slot-empty';
+      div.innerHTML = `<div>Stance Slot ${i+1}</div><div style="font-size:10px;color:#71717a">Open Position</div>`;
+    }
+    box.appendChild(div);
+  }
+};
+
+renderLobby();
+</script>
+
+
+<script id="force-dark-3d-lobby-js">
+(function(){
+  const ART_MAP = {
+    wukong: ['wukong.jpg', 'wukong.png', '1000003694.jpg']
+  };
+
+  function buildArt(id, icon){
+    const candidates = ART_MAP[id] || [];
+    if (!candidates.length) {
+      return `<div class="wukong-frame"><div class="wukong-emoji">${icon}</div></div>`;
+    }
+    const primary = candidates[0];
+    return `<div class="wukong-frame">
+      <img src="${primary}?v=${Date.now()}" alt="${id}" class="wukong-img"
+        onload="this.nextElementSibling.style.display='none'"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+      <div class="wukong-emoji" style="display:flex;align-items:center;justify-content:center">${icon}</div>
+    </div>`;
+  }
+
+  window.renderLobby = function(){
+    if (typeof updTop === 'function') updTop();
+    const sc = document.getElementById('squadCount');
+    if (sc) sc.textContent = state.squad.length;
+    const modeNames = { story:'Story Mode', online:'Online Arena', challenge:'Challenge League' };
+    const lm = document.getElementById('lastModeText');
+    if (lm) lm.textContent = modeNames[currentMode] || 'Story Mode';
+
+    const box = document.getElementById('lobbySquadSlots');
+    if (!box) return;
+    box.innerHTML = '';
+    for (let i = 0; i < 3; i++){
+      const id = state.squad[i];
+      const div = document.createElement('div');
+      if (id){
+        const s = getStats(id);
+        div.className = 'slot';
+        div.innerHTML = `${buildArt(id, s.icon)}
+          <div class="slot-footer">
+            <div style="font-weight:bold;font-size:11px;color:#fafafa">${s.name} <span style="color:#fbbf24">Lv.${s.lv}</span></div>
+            <div style="font-size:10px;color:#a1a1aa">HP ${s.maxHp} • ATK ${s.atk}</div>
+          </div>`;
+      } else {
+        div.className = 'slot slot-empty';
+        div.innerHTML = `<div style="font-size:11px;color:#a1a1aa">Slot ${i+1}</div><div style="font-size:10px;color:#71717a">Empty</div>`;
+      }
+      box.appendChild(div);
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.renderLobby);
+  } else {
+    window.renderLobby();
+  }
+})();
+</script>
+
+
+<script id="thor-first-photo-hook">
+(function() {
+  const fixThorSlots = () => {
+    const src = "thor.jpg?v=" + Date.now();
+    document.querySelectorAll("img").forEach(img => {
+      const txt = (img.alt || "") + " " + (img.src || "") + " " + (img.className || "") + " " + (img.parentElement ? img.parentElement.className : "");
+      if (/thor/i.test(txt) && !/wukong/i.test(txt)) {
+        if (!img.dataset.thorSet) {
+          img.dataset.thorSet = "1";
+          img.src = src;
+        }
+        img.classList.add("wukong-img");
+        if (img.parentElement) img.parentElement.classList.add("wukong-frame");
+      }
+    });
+  };
+  document.addEventListener("DOMContentLoaded", fixThorSlots);
+  const obs = new MutationObserver(fixThorSlots);
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+  setTimeout(fixThorSlots, 200);
+})();
+</script>
+
+
+
+
+
+
+
+
+<script id="thor-download-first">
+(function() {
+  const v = Date.now();
+  const thorSrc = "thor.jpg?v=" + v;
+
+  function applyThorFromDownload() {
+    if (Array.isArray(window.heroes)) {
+      window.heroes.forEach((h, idx) => {
+        const label = String((h && (h.name || h.id || h.title)) || "").toLowerCase();
+        if (label.includes("thor") || idx === 1) {
+          h.img = thorSrc;
+          h.image = thorSrc;
+          h.portrait = thorSrc;
+        }
+      });
+    }
+
+    document.querySelectorAll("img").forEach((img, i) => {
+      const parentTxt = img.parentElement ? img.parentElement.innerText.toLowerCase() : "";
+      const selfTxt = ((img.alt || "") + " " + (img.src || "") + " " + (img.className || "")).toLowerCase();
+      if (selfTxt.includes("thor") || parentTxt.includes("thor") || i === 1) {
+        if (!img.dataset.thorDlDone) {
+          img.dataset.thorDlDone = "1";
+          img.src = thorSrc;
+        }
+        img.classList.add("wukong-img");
+        if (img.parentElement) img.parentElement.classList.add("wukong-frame");
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", applyThorFromDownload);
+  new MutationObserver(applyThorFromDownload).observe(document.documentElement, { childList: true, subtree: true });
+  setTimeout(applyThorFromDownload, 200);
+})();
+</script>
+
+
+
+
+
+<script id="thor123-png-apply">
+(function() {
+  function applyThor123() {
+    const src = "thor123.png?v=" + Date.now();
+    document.querySelectorAll("div, section, article, li").forEach(card => {
+      const t = (card.innerText || "");
+      if (t.includes("Thor Lv.") && !t.includes("Wukong Lv.")) {
+        card.querySelectorAll("svg, i, span").forEach(el => {
+          const txt = (el.textContent || "").trim();
+          if (txt === "⚡" || el.tagName === "SVG") {
+            el.style.display = "none";
+          }
+        });
+        let img = card.querySelector("img.thor123-img");
+        if (!img) {
+          img = document.createElement("img");
+          img.className = "thor123-img wukong-img";
+          img.alt = "Thor";
+          card.prepend(img);
+        }
+        if (!img.dataset.set123) {
+          img.dataset.set123 = "1";
+          img.src = src;
+        }
+        card.classList.add("wukong-frame");
+      }
+    });
+  }
+  window.addEventListener("load", applyThor123);
+  setTimeout(applyThor123, 200);
+  setTimeout(applyThor123, 700);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anime Squad RPG — Wukong & Thor</title>
+<style>
+body{background:#090d16;color:#f8fafc;font-family:sans-serif;margin:0;padding:12px;display:flex;justify-content:center}
+.app{width:100%;max-width:440px;background:#111827;border:1px solid #1f2937;border-radius:14px;overflow:hidden}
+.top{background:#030712;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1f2937;font-size:13px}
+.xp-pill{background:#172554;border:1px solid #3b82f6;color:#93c5fd;padding:4px 10px;border-radius:999px;font-weight:bold}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:#0f172a;border-bottom:1px solid #1f2937}
+.tab{padding:10px 6px;text-align:center;font-size:12px;font-weight:bold;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:#fff;border-bottom-color:#38bdf8;background:#1e293b}
+.pad{padding:14px}
+.card{background:#1f2937;border:1px solid #374151;border-radius:10px;padding:10px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn{padding:8px 12px;border:none;border-radius:8px;font-weight:bold;font-size:12px;color:#fff;cursor:pointer;background:#2563eb}
+.btn-full{width:100%;padding:11px;font-size:14px;margin-top:8px}
+.btn-red{background:#e11d48}
+.btn-green{background:#16a34a}
+.btn-gold{background:#d97706}
+.btn-dim{background:#334155;color:#cbd5e1}
+.badge{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:bold;background:#334155;color:#e2e8f0}
+.badge-on{background:#14532d;color:#86efac}
+.stage{position:relative;height:185px;background:linear-gradient(180deg,#1e1b4b 0%,#0f172a 62%,#1e293b 100%);padding:10px}
+.hud{background:rgba(3,7,18,.9);padding:7px 9px;border-radius:8px;width:58%;font-size:11px;border:1px solid #334155}
+.hud-p{position:absolute;bottom:10px;right:10px}
+.bar{height:6px;background:#334155;border-radius:4px;overflow:hidden;margin-top:4px}
+.fill{height:100%;width:100%;background:#22c55e;transition:width .25s}
+.f-e{position:absolute;top:54px;right:24px;font-size:32px}
+.f-p{position:absolute;bottom:14px;left:22px;font-size:32px}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mbtn{padding:9px;background:#1f2937;color:#fff;border:1px solid #4b5563;border-radius:8px;font-size:12px;font-weight:bold;cursor:pointer}
+.sw-box{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.sw-btn{padding:5px 9px;font-size:11px;border-radius:6px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;cursor:pointer}
+.sw-btn.active{border-color:#38bdf8;background:#172554}
+.log{margin-top:10px;background:#030712;border:1px solid #1f2937;border-radius:8px;padding:8px;height:78px;overflow-y:auto;font-size:12px;color:#cbd5e1}
+
+.app {
+  max-width: 860px !important;
+  width: 100% !important;
+}
+#squadList, #levelList {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+}
+#inBattle {
+  display: grid !important;
+  grid-template-columns: 1.3fr 1fr !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+.stage {
+  min-height: 220px !important;
+  height: 100% !important;
+}
+@media (max-width: 600px) {
+  #squadList, #levelList {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <b>Wukong & Thor Squad RPG</b>
+    <span class="xp-pill">XP: <span id="xpVal">0</span></span>
+  </div>
+
+  <div class="tabs">
+    <div id="t-squad" class="tab active" onclick="switchTab('squad')">Squad (Max 3)</div>
+    <div id="t-level" class="tab" onclick="switchTab('level')">Level Up</div>
+    <div id="t-battle" class="tab" onclick="switchTab('battle')">Battle</div>
+  </div>
+
+  <!-- SQUAD TAB -->
+  <div id="view-squad" class="pad">
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">
+      eFootball-style roster: pick up to <b>3</b> fighters for your active squad.
+    </div>
+    <div id="squadList"></div>
+    <button class="btn btn-red btn-full" onclick="switchTab('battle')">Go to Battle</button>
+  </div>
+
+  <!-- LEVEL UP TAB -->
+  <div id="view-level" class="pad" style="display:none">
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">
+      Spend Training XP to level up any hero individually. Higher level = higher HP, ATK & DEF.
+    </div>
+    <div id="levelList"></div>
+  </div>
+
+  <!-- BATTLE TAB -->
+  <div id="view-battle" class="pad" style="display:none">
+    <div id="preBattle">
+      <div class="card">
+        <div style="font-weight:bold;margin-bottom:6px;">Active Squad Readiness</div>
+        <div id="squadPreview" style="font-size:12px;color:#cbd5e1;"></div>
+      </div>
+      <button class="btn btn-red btn-full" onclick="startBattle()">Start Squad Clash (+XP Reward)</button>
+    </div>
+
+    <div id="inBattle" style="display:none">
+      <div class="stage">
+        <div class="hud">
+          <div><b id="eName">Enemy</b> <span id="eLv" style="color:#fca5a5">Lv.1</span></div>
+          <div class="bar"><div id="eBar" class="fill"></div></div>
+          <div id="eHpTxt">0/0</div>
+        </div>
+        <div id="eIcon" class="f-e">👹</div>
+
+        <div id="pIcon" class="f-p">🐒</div>
+        <div class="hud hud-p">
+          <div><b id="pName">Wukong</b> <span id="pLv" style="color:#93c5fd">Lv.1</span></div>
+          <div class="bar"><div id="pBar" class="fill"></div></div>
+          <div id="pHpTxt">0/0</div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div id="moveGrid" class="moves"></div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:8px;">Switch Active Hero in Squad:</div>
+        <div id="switchRow" class="sw-box"></div>
+        <div id="bLog" class="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_HEROES = [
+  {
+    id:'wukong', name:'Wukong', icon:'🐒', role:'Trickster / Staff',
+    baseHp:110, baseAtk:24, baseDef:12,
+    moves:['Ruyi Staff Strike','Cloud Somersault']
+  },
+  {
+    id:'thor', name:'Thor', icon:'⚡', role:'Thunder / Hammer',
+    baseHp:125, baseAtk:26, baseDef:15,
+    moves:['Mjolnir Slam','Storm Call']
+  }
+];
+
+let state = loadState();
+let battle = null;
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem('wt_squad_rpg_v1');
+    if (raw) return JSON.parse(raw);
+  } catch(e){}
+  return {
+    xp: 60,
+    squad: ['wukong', 'thor'],
+    levels: { wukong: 1, thor: 1 }
+  };
+}
+
+function saveState(){
+  try { localStorage.setItem('wt_squad_rpg_v1', JSON.stringify(state)); } catch(e){}
+}
+
+function getStats(heroId){
+  const h = DEFAULT_HEROES.find(x => x.id === heroId);
+  const lv = state.levels[heroId] || 1;
+  const g = lv - 1;
+  return {
+    ...h,
+    lv,
+    maxHp: h.baseHp + g * 14,
+    atk: h.baseAtk + g * 4,
+    def: h.baseDef + g * 2,
+    upgradeCost: 30 + g * 20
+  };
+}
+
+function updTop(){
+  document.getElementById('xpVal').textContent = state.xp;
+}
+
+function switchTab(tab){
+  ['squad','level','battle'].forEach(t => {
+    document.getElementById('t-'+t).classList.toggle('active', t === tab);
+    document.getElementById('view-'+t).style.display = (t === tab) ? 'block' : 'none';
+  });
+  if (tab === 'squad') renderSquad();
+  if (tab === 'level') renderLevelUp();
+  if (tab === 'battle') renderBattleLobby();
+}
+
+function toggleSquad(id){
+  const idx = state.squad.indexOf(id);
+  if (idx > -1) {
+    if (state.squad.length <= 1) return; // keep at least 1 hero
+    state.squad.splice(idx, 1);
+  } else {
+    if (state.squad.length >= 3) return;
+    state.squad.push(id);
+  }
+  saveState();
+  renderSquad();
+}
+
+function renderSquad(){
+  updTop();
+  const box = document.getElementById('squadList');
+  box.innerHTML = '';
+  DEFAULT_HEROES.forEach(h => {
+    const s = getStats(h.id);
+    const inSquad = state.squad.includes(h.id);
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <span style="font-size:22px">${s.icon}</span>
+          <b style="margin-left:6px">${s.name}</b>
+          <span class="badge ${inSquad ? 'badge-on' : ''}">${inSquad ? 'IN SQUAD' : 'BENCH'}</span>
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
+            Lv.${s.lv} • HP ${s.maxHp} • ATK ${s.atk} • DEF ${s.def}
+          </div>
+        </div>
+        <button class="btn ${inSquad ? 'btn-dim' : 'btn-green'}" onclick="toggleSquad('${h.id}')">
+          ${inSquad ? 'Remove' : 'Add'}
+        </button>
+      </div>`;
+    box.appendChild(div);
+  });
+}
+
+function levelUpHero(id){
+  const s = getStats(id);
+  if (state.xp < s.upgradeCost) return;
+  state.xp -= s.upgradeCost;
+  state.levels[id] = s.lv + 1;
+  saveState();
+  renderLevelUp();
+}
+
+function renderLevelUp(){
+  updTop();
+  const box = document.getElementById('levelList');
+  box.innerHTML = '';
+  DEFAULT_HEROES.forEach(h => {
+    const s = getStats(h.id);
+    const canAfford = state.xp >= s.upgradeCost;
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <span style="font-size:22px">${s.icon}</span>
+          <b style="margin-left:6px">${s.name}</b> <span style="color:#93c5fd;font-size:12px;">Lv.${s.lv}</span>
+          <div style="font-size:11px;color:#cbd5e1;margin-top:4px;">
+            HP: ${s.maxHp} (+14) • ATK: ${s.atk} (+4) • DEF: ${s.def} (+2)
+          </div>
+        </div>
+        <button class="btn btn-gold" ${canAfford ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} onclick="levelUpHero('${h.id}')">
+          Lv Up (${s.upgradeCost} XP)
+        </button>
+      </div>`;
+    box.appendChild(div);
+  });
+}
+
+function renderBattleLobby(){
+  updTop();
+  document.getElementById('preBattle').style.display = 'block';
+  document.getElementById('inBattle').style.display = 'none';
+  const prev = document.getElementById('squadPreview');
+  prev.innerHTML = state.squad.map(id => {
+    const s = getStats(id);
+    return `<div>• ${s.icon} <b>${s.name}</b> (Lv.${s.lv} — HP ${s.maxHp}, ATK ${s.atk})</div>`;
+  }).join('');
+}
+
+function logB(msg){
+  const d = document.getElementById('bLog');
+  d.innerHTML += '<div>• ' + msg + '</div>';
+  d.scrollTop = d.scrollHeight;
+}
+
+function startBattle(){
+  const avgLv = Math.max(1, Math.round(state.squad.reduce((a,id)=>a+getStats(id).lv,0) / state.squad.length));
+  const hps = {};
+  state.squad.forEach(id => { hps[id] = getStats(id).maxHp; });
+
+  battle = {
+    activeId: state.squad[0],
+    hps,
+    eName: avgLv >= 3 ? 'Shadow Titan' : 'Rival Challenger',
+    eIcon: avgLv >= 3 ? '👹' : '🛡️',
+    eLv: avgLv,
+    eMaxHp: 95 + (avgLv - 1) * 18,
+    eHp: 95 + (avgLv - 1) * 18,
+    eAtk: 16 + (avgLv - 1) * 4,
+    eDef: 8 + (avgLv - 1) * 2,
+    busy: false
+  };
+
+  document.getElementById('preBattle').style.display = 'none';
+  document.getElementById('inBattle').style.display = 'block';
+  document.getElementById('bLog').innerHTML = '';
+  logB(`Battle started! Your lead: ${getStats(battle.activeId).name}.`);
+  renderBattleUI();
+}
+
+function switchActive(id){
+  if (!battle || battle.busy || battle.hps[id] <= 0 || id === battle.activeId) return;
+  battle.activeId = id;
+  logB(`Switched to ${getStats(id).name}!`);
+  renderBattleUI();
+}
+
+function renderBattleUI(){
+  const p = getStats(battle.activeId);
+  const pCur = battle.hps[battle.activeId];
+
+  document.getElementById('pName').textContent = p.name;
+  document.getElementById('pLv').textContent = 'Lv.' + p.lv;
+  document.getElementById('pIcon').textContent = p.icon;
+  document.getElementById('pBar').style.width = Math.max(0, (pCur / p.maxHp) * 100) + '%';
+  document.getElementById('pHpTxt').textContent = `${pCur}/${p.maxHp}`;
+
+  document.getElementById('eName').textContent = battle.eName;
+  document.getElementById('eLv').textContent = 'Lv.' + battle.eLv;
+  document.getElementById('eIcon').textContent = battle.eIcon;
+  document.getElementById('eBar').style.width = Math.max(0, (battle.eHp / battle.eMaxHp) * 100) + '%';
+  document.getElementById('eHpTxt').textContent = `${battle.eHp}/${battle.eMaxHp}`;
+
+  const mg = document.getElementById('moveGrid');
+  mg.innerHTML = '';
+  p.moves.forEach((m, idx) => {
+    const b = document.createElement('button');
+    b.className = 'mbtn';
+    b.textContent = m + (idx === 1 ? ' (Heavy)' : '');
+    b.onclick = () => playerAttack(idx);
+    mg.appendChild(b);
+  });
+
+  const sr = document.getElementById('switchRow');
+  sr.innerHTML = '';
+  state.squad.forEach(id => {
+    const s = getStats(id);
+    const b = document.createElement('button');
+    b.className = 'sw-btn' + (id === battle.activeId ? ' active' : '');
+    b.disabled = battle.hps[id] <= 0;
+    b.textContent = `${s.icon} ${s.name} (${battle.hps[id]}/${s.maxHp})`;
+    b.onclick = () => switchActive(id);
+    sr.appendChild(b);
+  });
+}
+
+function playerAttack(mIdx){
+  if (!battle || battle.busy) return;
+  battle.busy = true;
+  const p = getStats(battle.activeId);
+  const mult = mIdx === 1 ? 1.3 : 1.0;
+  const raw = (p.atk + Math.floor(Math.random() * 6)) * mult;
+  const dmg = Math.max(6, Math.round(raw - battle.eDef * 0.35));
+
+  battle.eHp = Math.max(0, battle.eHp - dmg);
+  logB(`${p.name} used ${p.moves[mIdx]} for ${dmg} DMG!`);
+  renderBattleUI();
+
+  if (battle.eHp <= 0) {
+    const gain = 35 + battle.eLv * 10;
+    state.xp += gain;
+    saveState();
+    updTop();
+    logB(`Victory! Earned +${gain} Training XP!`);
+    setTimeout(() => renderBattleLobby(), 1200);
+    return;
+  }
+
+  setTimeout(() => {
+    const curP = getStats(battle.activeId);
+    const edmg = Math.max(4, Math.round((battle.eAtk + Math.floor(Math.random() * 5)) - curP.def * 0.4));
+    battle.hps[battle.activeId] = Math.max(0, battle.hps[battle.activeId] - edmg);
+    logB(`${battle.eName} hit ${curP.name} for ${edmg} DMG!`);
+
+    if (battle.hps[battle.activeId] <= 0) {
+      logB(`${curP.name} is down!`);
+      const nextAlive = state.squad.find(id => battle.hps[id] > 0);
+      if (nextAlive) {
+        battle.activeId = nextAlive;
+        logB(`Auto-switched to ${getStats(nextAlive).name}!`);
+      } else {
+        logB(`All squad members defeated! Earned +10 consolation XP.`);
+        state.xp += 10;
+        saveState();
+        updTop();
+        setTimeout(() => renderBattleLobby(), 1200);
+        return;
+      }
+    }
+
+    battle.busy = false;
+    renderBattleUI();
+  }, 550);
+}
+
+updTop();
+renderSquad();
+</script>
+</body>
+</html>
